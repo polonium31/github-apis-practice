@@ -5,7 +5,7 @@ const octokit = new Octokit({
   auth: process.env.GITHUB_TOKEN,
 });
 
-async function getPullRequestsWithLabel() {
+async function getDocChangesPullRequests() {
   try {
     const response = await octokit.request("GET /repos/{owner}/{repo}/pulls", {
       owner: "electron",
@@ -18,22 +18,23 @@ async function getPullRequestsWithLabel() {
 
     const filteredData = response.data
       .filter((pullRequest) => {
-        const label = pullRequest.labels.find(
-          (label) => label.name === "documentation :notebook:"
-        );
-        return label;
+        return pullRequest.title.toLowerCase().includes("docs:");
       })
       .map((pullRequest) => ({
         number: pullRequest.number,
         commits_url: pullRequest.commits_url,
       }));
+
     fs.writeFileSync(
-      "filtered_pull_request_data.json",
+      "filtered_doc_changes_pull_requests.json",
       JSON.stringify(filteredData, null, 2)
     );
   } catch (error) {
-    console.error("Error fetching labeled pull requests:", error.message);
+    console.error(
+      "Error fetching pull requests with doc changes:",
+      error.message
+    );
   }
 }
 
-getPullRequestsWithLabel();
+getDocChangesPullRequests();

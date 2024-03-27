@@ -2,7 +2,7 @@ const fs = require("fs");
 const { Octokit } = require("@octokit/core");
 
 const octokit = new Octokit({
-  auth: "TOKEN",
+  auth: process.env.GITHUB_TOKEN,
 });
 
 const fetchData = async () => {
@@ -25,25 +25,33 @@ const fetchData = async () => {
           }
         );
 
-        const CommitData = response.data;
-        fs.writeFileSync(
-          "commit_data.json",
-          JSON.stringify(CommitData, null, 2)
-        );
+        const commitData = response.data;
+        return commitData;
       } catch (error) {
         console.error(
           `Error fetching tree data for commit ${commit.commit}:`,
           error.message
         );
+        return null;
       }
     };
 
-    // Use Promise.all to make multiple asynchronous calls concurrently
-    await Promise.all(treeValues.map((commit) => fetchTree(commit)));
+    const allCommitData = await Promise.all(
+      treeValues.map((commit) => fetchTree(commit))
+    );
+
+    fs.writeFileSync(
+      "all_commit_data.json",
+      JSON.stringify(
+        allCommitData.filter((commitData) => commitData !== null),
+        null,
+        2
+      )
+    );
+    console.log("Data processing completed successfully.");
   } catch (error) {
     console.error("Error reading tree_values.json:", error.message);
   }
 };
 
-// Call the asynchronous function
 fetchData();

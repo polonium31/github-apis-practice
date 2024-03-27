@@ -5,7 +5,7 @@ const fileData = fs.readFileSync("filtered_pull_request_data.json", "utf-8");
 const pullRequests = JSON.parse(fileData);
 
 const octokit = new Octokit({
-  auth: "TOKEN",
+  auth: process.env.GITHUB_TOKEN,
 });
 
 const fetchData = async (pullRequest) => {
@@ -26,12 +26,26 @@ const fetchData = async (pullRequest) => {
     const filteredData = response.data.map((commit) => ({
       commit: commit.sha,
     }));
-    fs.writeFileSync("tree_values.json", JSON.stringify(filteredData, null, 2));
+    return filteredData;
   } catch (error) {
     console.error("Error fetching data:", error.message);
+    return [];
   }
 };
 
-for (const pullRequest of pullRequests) {
-  fetchData(pullRequest);
-}
+const processAllData = async () => {
+  try {
+    const promises = pullRequests.map(fetchData);
+    const results = await Promise.all(promises);
+    const flattenedResults = results.flat();
+    fs.writeFileSync(
+      "tree_values.json",
+      JSON.stringify(flattenedResults, null, 2)
+    );
+    console.log("Data processing completed successfully.");
+  } catch (error) {
+    console.error("Error processing data:", error.message);
+  }
+};
+
+processAllData();
